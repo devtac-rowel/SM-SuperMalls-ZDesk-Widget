@@ -1,0 +1,51 @@
+{
+  "locale": [
+    "en"
+  ],
+  "service": "DESK",
+  "storage": true,
+  "type": "personal",
+  "whiteListedDomains": [
+    "https://webhook.site",
+    "https://desk.zoho.com",
+    "https://support.zoho.com"
+  ],
+  "modules": {
+    "widgets": [
+      {
+        "location": "desk.background",
+        "url": "/app/widget.html",
+        "name": "Auto-Update-Status-On-Ticket-Access",
+        "title": "Auto-Update-Status-On-Ticket-Access",
+        "logo": "/app/img/logo.png",
+        "icon": "/app/img/icon.png"
+      }
+    ]
+  },
+  "cspDomains": {
+    "connect-src": []
+  },
+  "zohoAuthorisation": {
+    "type": "connectors",
+    "connectionLinkName": "sm_zoho_desk_conn",
+    "connectionName": "sm_zoho_desk_conn",
+    "serviceName": "zlabs_integration",
+    "userAccess": false,
+    "isUserDefinedService": false,
+    "sharedBy": "847734955",
+    "scope": [
+      "Desk.tickets.ALL",
+      "Desk.tickets.READ",
+      "Desk.tickets.WRITE",
+      "Desk.tickets.UPDATE",
+      "Desk.tickets.CREATE",
+      "Desk.tickets.DELETE",
+      "Desk.settings.ALL",
+      "Desk.settings.READ",
+      "Desk.search.READ"
+    ]
+  },
+  "connectors": [],
+  "config": [],
+  "moduleSupport": true
+}
