@@ -55,7 +55,6 @@
                                     let responseData = JSON.parse(jsonResponse).statusMessage.data;
 
                                     if (responseData && responseData.length) {
-                                        console.log('fail');
                                         let currentInProgressTicket = responseData.shift();
                                         const alertParams = {
                                             title: `Status Notification: Ticket #${ticket.number}`,
@@ -66,7 +65,6 @@
 
                                         ZOHODESK.notify(alertParams);
                                     } else {
-                                        console.log('success');
                                         let requestParams = {
                                             url: `https://support.zoho.com/api/v1/blueprints/958056000000941001`,
                                             type: "GET",
@@ -124,11 +122,11 @@
                                             });
                                     }
                                 }).catch(function (err) {
-                                console.log(err);
-                            });
+                                    console.log(err);
+                                });
                         }).catch(function (error) {
-                        console.log(error);
-                    });
+                            console.log(error);
+                        });
                 }).catch(function (err) {
                     console.log(err);
                 });
