@@ -14,116 +14,124 @@
 
     window.onload = () => {
         ZOHODESK.extension.onload().then(function (App) {
-            ZOHODESK.get("ticket").then(function (response) {
-                if (!response || response.status !== "success" || !response.ticket) {
+            App.instance.on("ticket_Shift", function (data) {
+                if (!data) {
                     return;
                 }
 
-                let ticket = response.ticket;
-                if (ticket.status !== "Open") {
-                    return;
-                }
+                ZOHODESK.get("ticket").then(function (response) {
+                    if (!response || response.status !== "success" || !response.ticket) {
+                        return;
+                    }
 
-                ZOHODESK.get("user")
-                    .then(function (userResponse) {
-                        const userID = userResponse.user.id;
+                    let ticket = response.ticket;
+                    if (ticket.status !== "Open") {
+                        return;
+                    }
 
-                        const requestParams = {
-                            url: "https://desk.zoho.com/api/v1/tickets/search",
-                            type: "GET",
-                            headers: {
-                                "Content-Type": "application/json",
-                                orgId: orgID,
-                            },
-                            postBody: {},
-                            data: {
-                                assigneeId: userID,
-                                status: "In Progress",
-                                departmentId: ticket.departmentId,
-                            },
-                            connectionLinkName: "sm_zoho_desk_conn",
-                        };
+                    ZOHODESK.get("user")
+                        .then(function (userResponse) {
+                            const userID = userResponse.user.id;
 
-                        ZOHODESK.request(requestParams)
-                            .then(function (res) {
-                                let jsonResponse = JSON.parse(res).response;
-                                let responseData = JSON.parse(jsonResponse).statusMessage.data;
+                            const requestParams = {
+                                url: "https://desk.zoho.com/api/v1/tickets/search",
+                                type: "GET",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    orgId: orgID,
+                                },
+                                postBody: {},
+                                data: {
+                                    assigneeId: userID,
+                                    status: "In Progress",
+                                    departmentId: ticket.departmentId,
+                                },
+                                connectionLinkName: "sm_zoho_desk_conn",
+                            };
 
-                                if (!responseData.length) {
-                                    let currentInProgressTicket = responseData.shift();
-                                    const alertParams = {
-                                        title: `Status Notification: Ticket #${ticket.number}`,
-                                        content: `Current ticket status cannot be changed. Ticket #${currentInProgressTicket.ticketNumber} is currently In Progress`,
-                                        icon: "failure",
-                                        autoClose: false,
-                                    };
+                            ZOHODESK.request(requestParams)
+                                .then(function (res) {
+                                    let jsonResponse = JSON.parse(res).response;
+                                    let responseData = JSON.parse(jsonResponse).statusMessage.data;
 
-                                    ZOHODESK.notify(alertParams);
-                                } else {
-                                    let requestParams = {
-                                        url: `https://support.zoho.com/api/v1/blueprints/958056000000941001`,
-                                        type: "GET",
-                                        headers: {
-                                            "Content-Type": "application/json",
-                                            orgId: orgID,
-                                        },
-                                        postBody: {},
-                                        data: {},
-                                        connectionLinkName: "sm_zoho_desk_conn",
-                                    };
+                                    if (responseData && responseData.length) {
+                                        console.log('fail');
+                                        let currentInProgressTicket = responseData.shift();
+                                        const alertParams = {
+                                            title: `Status Notification: Ticket #${ticket.number}`,
+                                            content: `Current ticket status cannot be changed. Ticket #${currentInProgressTicket.ticketNumber} is currently In Progress`,
+                                            icon: "failure",
+                                            autoClose: true,
+                                        };
 
-                                    ZOHODESK.request(requestParams)
-                                        .then(function (blueprintRes) {
-                                            blueprintRes = JSON.parse(blueprintRes).response;
-                                            let blueprintTransitions = JSON.parse(blueprintRes).statusMessage.transitions;
+                                        ZOHODESK.notify(alertParams);
+                                    } else {
+                                        console.log('success');
+                                        let requestParams = {
+                                            url: `https://support.zoho.com/api/v1/blueprints/958056000000941001`,
+                                            type: "GET",
+                                            headers: {
+                                                "Content-Type": "application/json",
+                                                orgId: orgID,
+                                            },
+                                            postBody: {},
+                                            data: {},
+                                            connectionLinkName: "sm_zoho_desk_conn",
+                                        };
 
-                                            let transitionID;
-                                            Object.values(blueprintTransitions).forEach(function (data) {
-                                                if (data.name === "In Progress") {
-                                                    transitionID = data.id;
-                                                    return;
-                                                }
-                                            });
+                                        ZOHODESK.request(requestParams)
+                                            .then(function (blueprintRes) {
+                                                blueprintRes = JSON.parse(blueprintRes).response;
+                                                let blueprintTransitions = JSON.parse(blueprintRes).statusMessage.transitions;
 
-                                            let transitionParams = {
-                                                url: `https://support.zoho.com/api/v1/tickets/${ticket.id}/transitions/${transitionID}/perform`,
-                                                type: "POST",
-                                                headers: {
-                                                    "Content-Type": "application/json",
-                                                    orgId: orgID,
-                                                },
-                                                postBody: {"FIELD_UPDATE": {"channel": ""}},
-                                                data: {},
-                                                connectionLinkName: "sm_zoho_desk_conn",
-                                            };
-
-                                            ZOHODESK.request(transitionParams)
-                                                .then(function (transitionRes) {
-                                                    const alertParams = {
-                                                        title: `Status Notification: Ticket #${ticket.number}`,
-                                                        content: "Status was changed to In Progress.",
-                                                        icon: "success",
-                                                        autoClose: false,
-                                                    };
-
-                                                    ZOHODESK.notify(alertParams);
-                                                })
-                                                .catch(function (transitionErr) {
-                                                    console.log(transitionErr);
+                                                let transitionID;
+                                                Object.values(blueprintTransitions).forEach(function (data) {
+                                                    if (data.name === "In Progress") {
+                                                        transitionID = data.id;
+                                                        return;
+                                                    }
                                                 });
-                                        })
-                                        .catch(function (blueprintErr) {
-                                            console.log(JSON.parse(blueprintErr));
-                                        });
-                                }
-                            }).catch(function (err) {
-                            console.log(err);
-                        });
-                    }).catch(function (error) {
+
+                                                let transitionParams = {
+                                                    url: `https://support.zoho.com/api/v1/tickets/${ticket.id}/transitions/${transitionID}/perform`,
+                                                    type: "POST",
+                                                    headers: {
+                                                        "Content-Type": "application/json",
+                                                        orgId: orgID,
+                                                    },
+                                                    postBody: {"FIELD_UPDATE": {"channel": ""}},
+                                                    data: {},
+                                                    connectionLinkName: "sm_zoho_desk_conn",
+                                                };
+
+                                                ZOHODESK.request(transitionParams)
+                                                    .then(function (transitionRes) {
+                                                        const alertParams = {
+                                                            title: `Status Notification: Ticket #${ticket.number}`,
+                                                            content: "Status was changed to In Progress.",
+                                                            icon: "success",
+                                                            autoClose: false,
+                                                        };
+
+                                                        ZOHODESK.notify(alertParams);
+                                                    })
+                                                    .catch(function (transitionErr) {
+                                                        console.log(transitionErr);
+                                                    });
+                                            })
+                                            .catch(function (blueprintErr) {
+                                                console.log(JSON.parse(blueprintErr));
+                                            });
+                                    }
+                                }).catch(function (err) {
+                                console.log(err);
+                            });
+                        }).catch(function (error) {
                         console.log(error);
                     });
-            }).catch(function (err) {
-                console.log(err);
+                }).catch(function (err) {
+                    console.log(err);
+                });
             });
         });
     };
