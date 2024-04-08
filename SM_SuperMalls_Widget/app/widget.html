@@ -54,6 +54,9 @@
                                     let jsonResponse = JSON.parse(res).response;
                                     let responseData = JSON.parse(jsonResponse).statusMessage.data;
 
+                                    console.log('API Response');
+                                    console.log(responseData);
+
                                     if (responseData && responseData.length) {
                                         let currentInProgressTicket = responseData.shift();
                                         const alertParams = {
