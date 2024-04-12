@@ -14,12 +14,13 @@
 
     window.onload = () => {
         ZOHODESK.extension.onload().then(function (App) {
-            setTimeout(
-                App.instance.on("ticket_Shift", function (data) {
-                    if (!data) {
-                        return;
-                    }
+            App.instance.on("ticket_Shift", function (data) {
+                if (!data) {
+                    console.log("Something Went Wrong in Ticket Shift Function");
+                    return;
+                }
 
+                setTimeout(
                     ZOHODESK.get("ticket").then(function (response) {
                         if (!response || response.status !== "success" || !response.ticket) {
                             return;
@@ -133,10 +134,10 @@
                         });
                     }).catch(function (err) {
                         console.log(err);
-                    });
-                }),
-                3000
-            );
+                    }),
+                    3000
+                );
+            })
         });
     };
 </script>
