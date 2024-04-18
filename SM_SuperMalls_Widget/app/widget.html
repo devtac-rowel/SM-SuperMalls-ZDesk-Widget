@@ -62,7 +62,7 @@
                                                 title: `Status Notification: Ticket #${ticket.number}`,
                                                 content: `Current ticket status cannot be changed. Ticket #${currentInProgressTicket.ticketNumber} is currently In Progress`,
                                                 icon: "failure",
-                                                autoClose: false,
+                                                autoClose: true,
                                             };
 
                                             ZOHODESK.notify(alertParams);
@@ -110,7 +110,7 @@
                                                                 title: `Status Notification: Ticket #${ticket.number}`,
                                                                 content: "Status was changed to In Progress.",
                                                                 icon: "success",
-                                                                autoClose: false,
+                                                                autoClose: true,
                                                             };
 
                                                             ZOHODESK.notify(alertParams);
