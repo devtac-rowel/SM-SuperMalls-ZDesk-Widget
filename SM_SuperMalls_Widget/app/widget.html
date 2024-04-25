@@ -39,6 +39,7 @@
                             assignee: userID,
                             status: "In Progress",
                             departmentId: ticket.departmentId,
+                            limit: 1
                         },
                         connectionLinkName: "sm_zoho_desk_conn",
                     };
@@ -49,17 +50,14 @@
 
                         if (responseData && responseData.length) {
                             let currentInProgressTicket = responseData.shift();
-                            const alertParams = {
+                            alertMessage({
                                 title: `Status Notification: Ticket #${ticket.number}`,
                                 content: `Current ticket status cannot be changed. Ticket #${currentInProgressTicket.ticketNumber} is currently In Progress`,
                                 icon: "failure",
-                                autoClose: true,
-                            };
-
-                            ZOHODESK.notify(alertParams);
+                            });
                         } else {
                             let requestParams = {
-                                url: `https://support.zoho.com/api/v1/blueprints/958056000000941001`,
+                                url: `https://support.zoho.com/api/v1/tickets/${ticket.id}/blueprint`,
                                 type: "GET",
                                 headers: {
                                     "Content-Type": "application/json",
@@ -70,56 +68,146 @@
                                 connectionLinkName: "sm_zoho_desk_conn",
                             };
 
-                            ZOHODESK.request(requestParams).then(function (blueprintRes) {
-                                blueprintRes = JSON.parse(blueprintRes).response;
-                                let blueprintTransitions = JSON.parse(blueprintRes).statusMessage.transitions;
-
-                                let transitionID;
-                                Object.values(blueprintTransitions).forEach(function (data) {
-                                    if (data.name === "In Progress") {
-                                        transitionID = data.id;
-                                        return;
-                                    }
+                            ZOHODESK.request(requestParams).then(function (resp) {
+                                let varResp = JSON.parse(resp).response;
+                                let blueprintID = JSON.parse(varResp).statusMessage.id;
+                                if (blueprintID) {
+                                    updateStatusViaBlueprintTransition(blueprintID, ticket);
+                                } else {
+                                    updateStatusViaAPI(ticket);
+                                }
+                            }).catch(function (transitionErr) {
+                                console.log(transitionErr);
+                                alertMessage({
+                                    title: `Error!`,
+                                    content: `Please Contact the Administration`,
+                                    icon: "failure",
                                 });
-
-                                let transitionParams = {
-                                    url: `https://support.zoho.com/api/v1/tickets/${ticket.id}/transitions/${transitionID}/perform`,
-                                    type: "POST",
-                                    headers: {
-                                        "Content-Type": "application/json",
-                                        orgId: orgID,
-                                    },
-                                    postBody: {"FIELD_UPDATE": {"channel": ""}},
-                                    data: {},
-                                    connectionLinkName: "sm_zoho_desk_conn",
-                                };
-
-                                ZOHODESK.request(transitionParams).then(function (transitionRes) {
-                                    const alertParams = {
-                                        title: `Status Notification: Ticket #${ticket.number}`,
-                                        content: "Status was changed to In Progress.",
-                                        icon: "success",
-                                        autoClose: true,
-                                    };
-
-                                    ZOHODESK.notify(alertParams);
-                                }).catch(function (transitionErr) {
-                                    console.log(transitionErr);
-                                });
-                            }).catch(function (blueprintErr) {
-                                console.log(JSON.parse(blueprintErr));
                             });
                         }
                     }).catch(function (err) {
                         console.log(err);
+                        alertMessage({
+                            title: `Error!`,
+                            content: `Please Contact the Administration`,
+                            icon: "failure",
+                        });
                     });
                 }
             }).catch(function (error) {
                 console.log(error);
+                alertMessage({
+                    title: `Error!`,
+                    content: `Please Contact the Administration`,
+                    icon: "failure",
+                });
             });
         }).catch(function (err) {
             console.log(err);
         })
+    }
+    
+    function updateStatusViaBlueprintTransition(blueprintID, ticket) {
+        let requestParams = {
+            url: `https://support.zoho.com/api/v1/blueprints/${blueprintID}`,
+            type: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                orgId: orgID,
+            },
+            postBody: {},
+            data: {},
+            connectionLinkName: "sm_zoho_desk_conn",
+        };
+
+        ZOHODESK.request(requestParams).then(function (blueprintRes) {
+            blueprintRes = JSON.parse(blueprintRes).response;
+            let blueprintTransitions = JSON.parse(blueprintRes).statusMessage.transitions;
+
+            let transitionID;
+            Object.values(blueprintTransitions).forEach(function (data) {
+                if (data.name === "In Progress") {
+                    transitionID = data.id;
+                    return;
+                }
+            });
+
+            let transitionParams = {
+                url: `https://support.zoho.com/api/v1/tickets/${ticket.id}/transitions/${transitionID}/perform`,
+                type: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    orgId: orgID,
+                },
+                postBody: {"FIELD_UPDATE": {"channel": ""}},
+                data: {},
+                connectionLinkName: "sm_zoho_desk_conn",
+            };
+
+            ZOHODESK.request(transitionParams).then(function (transitionRes) {
+                alertMessage({
+                    title: `Status Notification: Ticket #${ticket.number}`,
+                    content: "Status was changed to In Progress.",
+                    icon: "success",
+                });
+            }).catch(function (transitionErr) {
+                console.log(transitionErr);
+                alertMessage({
+                    title: `Error!`,
+                    content: `Please Contact the Administration`,
+                    icon: "failure",
+                });
+            });
+        }).catch(function (blueprintErr) {
+            console.log(JSON.parse(blueprintErr));
+            alertMessage({
+                title: `Error!`,
+                content: `Please Contact the Administration`,
+                icon: "failure",
+            });
+        });
+    }
+
+    function updateStatusViaAPI(ticket) {
+        let params = {
+            url: `https://support.zoho.com/api/v1/tickets/${ticket.id}`,
+            type: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                orgId: orgID,
+            },
+            postBody: {
+                "status" : "In Progress"
+            },
+            data: {},
+            connectionLinkName: "sm_zoho_desk_conn",
+        };
+
+        ZOHODESK.request(params).then(function (resp) {
+            alertMessage({
+                title: `Status Notification: Ticket #${ticket.number}`,
+                content: "Status was changed to In Progress.",
+                icon: "success",
+            });
+        }).catch(function (err) {
+            console.log(err);
+            alertMessage({
+                title: `Error!`,
+                content: `Please Contact the Administration`,
+                icon: "failure",
+            });
+        });
+    }
+
+    function alertMessage(data) {
+        const alertParams = {
+            title: data.title,
+            content: data.content,
+            icon: data.icon,
+            autoClose: true,
+        };
+
+        ZOHODESK.notify(alertParams);
     }
 
     window.onload = () => {
