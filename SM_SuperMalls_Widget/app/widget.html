@@ -56,7 +56,7 @@
 
                 alertMessage({
                     title: `Status Notification: Ticket #${ticket.number}`,
-                    content: `Current ticket status cannot be changed. Ticket #${currentInProgressTicket.ticketNumber} is currently In Progress`,
+                    content: `Current ticket status cannot be changed. Ticket #${currentInProgressTicket.ticketNumber} is currently ${currentInProgressTicket.status}`,
                     icon: "failure",
                 });
             } else {
